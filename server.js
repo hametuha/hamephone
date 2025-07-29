@@ -8,7 +8,7 @@ app.use(express.urlencoded({ extended: false }));
 /**
  * IVRメニューを提供するエンドポイント
  * @route POST /ivr
- * @description 着信時に営業/顧客の振り分けメニューを音声で案内
+ * @description 着信時に営業/返品/注文の振り分けメニューを音声で案内
  * @returns {string} TwiML形式のXMLレスポンス
  */
 app.post('/ivr', (req, res) => {
@@ -18,10 +18,11 @@ app.post('/ivr', (req, res) => {
     action: '/handle-gather',
     method: 'POST'
   });
+  const message = 'お電話ありがとうございます。破滅派です。営業またはサービスのご紹介の方は1を、書籍の返品希望の書店様は2を、その他、破滅派への書籍注文やサービスに関するお問い合わせについては3を押してください。';
   gather.say({
-    voice: 'woman',
+    voice: 'Polly.Takumi-Neural',
     language: 'ja-JP',
-  }, '営業の方は1を、お客様は2を押してください。');
+  }, message);
   res.type('text/xml');
   res.send(response.toString());
 });
@@ -29,23 +30,108 @@ app.post('/ivr', (req, res) => {
 /**
  * キーパッド入力に基づいて通話を振り分ける
  * @route POST /handle-gather
- * @param {string} req.body.Digits - ユーザーが押したキー
- * @description 営業の場合は拒否メッセージ、顧客の場合は転送
+ * @param {string} req.body.Digits - ユーザーが押したキー（1: 営業, 2: 返品, 3: 注文）
+ * @description 営業と返品は2段階転送、注文は直接転送
  * @returns {string} TwiML形式のXMLレスポンス
  */
 app.post('/handle-gather', async (req, res) => {
   const digit = req.body.Digits;
   const response = new twiml.VoiceResponse();
 
-  if (digit === '2') {
-    // 録音機能付きで転送（SMS通知は録音完了時にまとめて送信）
+  if (digit === '1') {
+    // 営業：お問い合わせフォーム案内 → 確認
+    const gather = response.gather({
+      numDigits: 1,
+      action: '/confirm-sales',
+      method: 'POST'
+    });
+    // 営業のメッセージ
+    const message = '営業やサービスのご紹介はお問い合わせフォームをご利用ください。通話をご希望の場合は1を押してください。';
+    // メッセージを再生
+    gather.say({
+      voice: 'Polly.Takumi-Neural',
+      language: 'ja-JP',
+    }, message);
+  } else if (digit === '2') {
+    // 返品依頼：メッセージ案内 → 確認
+    const gather = response.gather({
+      numDigits: 1,
+      action: '/confirm-return',
+      method: 'POST'
+    });
+    // 返品のメッセージ
+    const message = '返品条件付き注文品は返品了解者「タカハシ」で取次にお戻しください。通話をご希望の方は1を押してください。';
+    // メッセージを再生
+    gather.say({
+      voice: 'Polly.Takumi-Neural',
+      language: 'ja-JP',
+    }, message);
+  } else if (digit === '3') {
+    // 注文・サービス：直接転送
     response.dial({
       record: 'record-from-answer',
       recordingStatusCallback: '/recording-status',
       timeout: 30
     }, process.env.FORWARD_TO);
   } else {
-    response.say('営業のお電話はお断りしています。');
+    response.say({
+      voice: 'Polly.Takumi-Neural',
+      language: 'ja-JP',
+    }, '正しい番号を押してください。');
+    response.hangup();
+  }
+  res.type('text/xml');
+  res.send(response.toString());
+});
+
+/**
+ * 営業の確認処理
+ * @route POST /confirm-sales
+ * @param {string} req.body.Digits - ユーザーが押したキー
+ * @description 1を押した場合のみ転送、それ以外は終了
+ */
+app.post('/confirm-sales', (req, res) => {
+  const digit = req.body.Digits;
+  const response = new twiml.VoiceResponse();
+
+  if (digit === '1') {
+    response.dial({
+      record: 'record-from-answer',
+      recordingStatusCallback: '/recording-status',
+      timeout: 30
+    }, process.env.FORWARD_TO);
+  } else {
+    response.say({
+      voice: 'Polly.Takumi-Neural',
+      language: 'ja-JP',
+    }, 'お問い合わせフォームをご利用ください。ありがとうございました。');
+    response.hangup();
+  }
+  res.type('text/xml');
+  res.send(response.toString());
+});
+
+/**
+ * 返品依頼の確認処理
+ * @route POST /confirm-return
+ * @param {string} req.body.Digits - ユーザーが押したキー
+ * @description 1を押した場合のみ転送、それ以外は終了
+ */
+app.post('/confirm-return', (req, res) => {
+  const digit = req.body.Digits;
+  const response = new twiml.VoiceResponse();
+
+  if (digit === '1') {
+    response.dial({
+      record: 'record-from-answer',
+      recordingStatusCallback: '/recording-status',
+      timeout: 30
+    }, process.env.FORWARD_TO);
+  } else {
+    response.say({
+      voice: 'Polly.Takumi-Neural',
+      language: 'ja-JP',
+    }, '返品についてメッセージでご案内いたしました。ありがとうございました。');
     response.hangup();
   }
   res.type('text/xml');
