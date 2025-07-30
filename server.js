@@ -76,6 +76,7 @@ app.post('/handle-gather', async (req, res) => {
     response.dial({
       record: 'record-from-answer',
       recordingStatusCallback: '/recording-status',
+      callerId: process.env.TWILIO_PHONE_NUMBER,
       timeout: 30
     }, process.env.FORWARD_TO);
   } else {
@@ -103,7 +104,8 @@ app.post('/confirm-sales', (req, res) => {
     response.dial({
       record: 'record-from-answer',
       recordingStatusCallback: '/recording-status',
-      timeout: 30
+      timeout: 30,
+      callerId: process.env.TWILIO_PHONE_NUMBER,
     }, process.env.FORWARD_TO);
   } else {
     response.say({
@@ -130,6 +132,7 @@ app.post('/confirm-return', (req, res) => {
     response.dial({
       record: 'record-from-answer',
       recordingStatusCallback: '/recording-status',
+      callerId: process.env.TWILIO_PHONE_NUMBER,
       timeout: 30
     }, process.env.FORWARD_TO);
   } else {
@@ -151,17 +154,22 @@ app.post('/confirm-return', (req, res) => {
 app.post('/recording-status', async (req, res) => {
   const recordingUrl = req.body.RecordingUrl;
   const recordingSid = req.body.RecordingSid;
-  const from = req.body.From || '不明';
   const callTime = new Date().toLocaleString('ja-JP');
-  
   try {
     const twilio = require('twilio');
     const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-    
+    // 発信者番号を特定
+    const callSid = req.body.CallSid;
+    let from = '不明';
+    try {
+      const call = await client.calls(callSid).fetch();
+      from = call.from || '不明';
+    } catch (err) {
+      console.error('発信者情報の取得に失敗:', err);
+    }
     // 録音情報を取得（S3に保存されている場合のURLも含む）
     const recording = await client.recordings(recordingSid).fetch();
     const mediaUrl = recording.mediaUrl || recordingUrl;
-    
     console.log('録音完了:', {
       sid: recordingSid,
       url: mediaUrl,
@@ -169,7 +177,6 @@ app.post('/recording-status', async (req, res) => {
       from: from,
       time: callTime
     });
-    
     // SMS用番号がある場合はSMS送信
     const smsNumber = process.env.TWILIO_SMS_NUMBER;
     if (smsNumber) {
@@ -185,7 +192,7 @@ app.post('/recording-status', async (req, res) => {
   } catch (error) {
     console.error('録音処理エラー:', error);
   }
-  
+
   res.sendStatus(200);
 });
 
