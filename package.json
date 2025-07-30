@@ -1,0 +1,35 @@
+{
+  "name": "hamephone",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "restart": "chmod +x bin/restart.sh && ./bin/restart.sh",
+    "stop": "pkill -f 'node server.js' && pkill ngrok || true",
+    "tunnel": "npx ngrok http 3000",
+    "status": "echo 'サーバー状態:' && ps aux | grep 'node server.js' | grep -v grep && echo 'ngrok状態:' && ps aux | grep ngrok | grep -v grep",
+    "deploy": "./bin/deploy.sh",
+    "deploy:build": "gcloud builds submit --tag gcr.io/hametuha-cloud/hamephone",
+    "deploy:run": "gcloud run deploy hamephone --image gcr.io/hametuha-cloud/hamephone --region asia-northeast1 --platform managed --allow-unauthenticated --port 3000 --memory 512Mi --cpu 1 --max-instances 10 --min-instances 0",
+    "secrets:setup": "./bin/setup-secrets.sh",
+    "secrets:auto": "./bin/auto-setup-secrets.sh",
+    "secrets:list": "gcloud secrets list",
+    "github:setup": "./bin/setup-github-actions.sh",
+    "test": "jest"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.1",
+    "express": "^4.18.2",
+    "twilio": "^4.15.0"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "supertest": "^6.3.0"
+  },
+  "engines": {
+    "node": "20.19.4"
+  },
+  "volta": {
+    "node": "20.19.4"
+  }
+}

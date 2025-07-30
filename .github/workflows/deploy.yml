@@ -1,0 +1,71 @@
+name: 🚀 Deploy to Cloud Run
+
+on:
+  push:
+    branches: [ main, master ]
+
+env:
+  REGION: asia-northeast1
+  SERVICE_NAME: hamephone
+
+jobs:
+  test-and-deploy:
+    name: Test and Deploy
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run tests
+      run: npm test
+    
+    - name: Google Auth
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+    
+    - name: Setup Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+    
+    - name: Configure Docker
+      run: gcloud auth configure-docker
+    
+    - name: Build and push Docker image
+      run: |
+        gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}
+    
+    - name: Deploy to Cloud Run
+      run: |
+        gcloud run deploy ${{ env.SERVICE_NAME }} \
+          --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }} \
+          --region ${{ env.REGION }} \
+          --platform managed \
+          --allow-unauthenticated \
+          --port 3000 \
+          --memory 512Mi \
+          --cpu 1 \
+          --max-instances 10 \
+          --min-instances 0 \
+          --set-env-vars PORT=3000 \
+          --set-secrets TWILIO_ACCOUNT_SID=twilio-account-sid:latest \
+          --set-secrets TWILIO_AUTH_TOKEN=twilio-auth-token:latest \
+          --set-secrets TWILIO_PHONE_NUMBER=twilio-phone-number:latest \
+          --set-secrets TWILIO_SMS_NUMBER=twilio-sms-number:latest \
+          --set-secrets FORWARD_TO=forward-to:latest \
+          --set-secrets AWS_ACCESS_KEY_ID=aws-access-key-id:latest \
+          --set-secrets AWS_SECRET_ACCESS_KEY=aws-secret-access-key:latest
+    
+    - name: Show service URL
+      run: |
+        echo "✅ デプロイが完了しました！"
+        echo "🌐 サービスURL:"
+        gcloud run services describe ${{ env.SERVICE_NAME }} --region ${{ env.REGION }} --format="value(status.url)" 

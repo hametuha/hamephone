@@ -1,0 +1,8 @@
+version: "2"
+authtoken: your_ngrok_auth_token_here
+tunnels:
+  hamephone:
+    proto: http
+    addr: 3000
+    subdomain: hamephone
+    region: ap 
