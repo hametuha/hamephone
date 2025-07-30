@@ -49,12 +49,22 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" \
     --member="serviceAccount:$CLOUDBUILD_SA" \
     --role="roles/serviceusage.serviceUsageAdmin"
 
+# Cloud Runサービスアカウントの権限
+echo "📝 Cloud Runサービスアカウントの権限を設定中..."
+CLOUDRUN_SA="$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')-compute@developer.gserviceaccount.com"
+
+# Cloud RunサービスアカウントにSecret Managerアクセス権限を付与
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    --member="serviceAccount:$CLOUDRUN_SA" \
+    --role="roles/secretmanager.secretAccessor"
+
 # 必要なAPIを有効化
 echo "🔧 必要なAPIを有効化中..."
 gcloud services enable cloudbuild.googleapis.com
 gcloud services enable run.googleapis.com
 gcloud services enable secretmanager.googleapis.com
 gcloud services enable storage.googleapis.com
+gcloud services enable cloudresourcemanager.googleapis.com
 
 echo "✅ Cloud Build権限の修正が完了しました！"
 echo ""
