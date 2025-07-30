@@ -132,3 +132,4 @@ git push origin feature/new-feature
 | `bin/setup-secrets.sh` | Secret Manager設定（対話式） | `npm run secrets:setup` |
 | `bin/auto-setup-secrets.sh` | Secret Manager自動設定 | `npm run secrets:auto` |
 | `bin/setup-github-actions.sh` | GitHub Actionsセットアップ | `npm run github:setup` |
+| `bin/fix-cloudbuild-permissions.sh` | Cloud Build権限修正 | `npm run github:fix-permissions` |
