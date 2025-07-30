@@ -56,10 +56,39 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" \
     --member="serviceAccount:$SA_EMAIL" \
     --role="roles/cloudbuild.builds.editor"
 
+# Cloud Buildサービスアカウント権限
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    --member="serviceAccount:$SA_EMAIL" \
+    --role="roles/cloudbuild.builds.builder"
+
+# Service Usage管理者権限
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    --member="serviceAccount:$SA_EMAIL" \
+    --role="roles/serviceusage.serviceUsageAdmin"
+
+# Storage管理者権限（Cloud Build用）
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    --member="serviceAccount:$SA_EMAIL" \
+    --role="roles/storage.admin"
+
 # Secret Manager管理者権限
 gcloud projects add-iam-policy-binding "$PROJECT_ID" \
     --member="serviceAccount:$SA_EMAIL" \
     --role="roles/secretmanager.admin"
+
+# Cloud Buildサービスアカウントに権限を付与
+echo "🔧 Cloud Buildサービスアカウントの設定中..."
+CLOUDBUILD_SA="$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')@cloudbuild.gserviceaccount.com"
+
+# Cloud BuildサービスアカウントにStorage権限を付与
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    --member="serviceAccount:$CLOUDBUILD_SA" \
+    --role="roles/storage.admin"
+
+# Cloud BuildサービスアカウントにService Usage権限を付与
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    --member="serviceAccount:$CLOUDBUILD_SA" \
+    --role="roles/serviceusage.serviceUsageAdmin"
 
 echo "✅ 権限の付与が完了しました"
 

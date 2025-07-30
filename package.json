@@ -15,6 +15,7 @@
     "secrets:auto": "./bin/auto-setup-secrets.sh",
     "secrets:list": "gcloud secrets list",
     "github:setup": "./bin/setup-github-actions.sh",
+    "github:fix-permissions": "./bin/fix-cloudbuild-permissions.sh",
     "test": "jest"
   },
   "dependencies": {
