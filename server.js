@@ -5,6 +5,11 @@ dotenv.config();
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 
+app.get('/', (req, res) => {
+  res.set('Content-Type', 'text/plain');
+  res.send('HamePhone Server powered by Twilio');
+});
+
 /**
  * IVRメニューを提供するエンドポイント
  * @route POST /ivr
@@ -141,7 +146,7 @@ app.post('/confirm-return', (req, res) => {
 /**
  * 録音完了時の処理
  * @route POST /recording-status
- * @description 録音ファイルの保存と通知
+ * @description 録音ファイルのS3保存と通知
  */
 app.post('/recording-status', async (req, res) => {
   const recordingUrl = req.body.RecordingUrl;
@@ -153,16 +158,30 @@ app.post('/recording-status', async (req, res) => {
     const twilio = require('twilio');
     const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
     
-    // 7日後に自動削除
-    await client.recordings(recordingSid)
-      .update({ status: 'deleted' });
+    // 録音情報を取得（S3に保存されている場合のURLも含む）
+    const recording = await client.recordings(recordingSid).fetch();
+    const mediaUrl = recording.mediaUrl || recordingUrl;
     
-    // 1回のSMS通知にまとめる
-    await client.messages.create({
-      body: `[📞 タイトル]\n⏰ ${callTime}\n📱 ${from}\n🎙️ 録音完了\n🔗 ${recordingUrl}\n⏰ 7日後に自動削除`,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: process.env.FORWARD_TO
+    console.log('録音完了:', {
+      sid: recordingSid,
+      url: mediaUrl,
+      duration: recording.duration,
+      from: from,
+      time: callTime
     });
+    
+    // SMS用番号がある場合はSMS送信
+    const smsNumber = process.env.TWILIO_SMS_NUMBER;
+    if (smsNumber) {
+      await client.messages.create({
+        body: `[📞 タイトル]\n⏰ ${callTime}\n📱 ${from}\n🎙️ 録音完了\n🔗 ${mediaUrl}\n⏰ S3に保存済み`,
+        from: smsNumber,
+        to: process.env.FORWARD_TO
+      });
+      console.log('SMS通知を送信しました');
+    } else {
+      console.log('SMS用番号が設定されていないため、SMS通知をスキップしました');
+    }
   } catch (error) {
     console.error('録音処理エラー:', error);
   }

@@ -1,0 +1,38 @@
+steps:
+  # Dockerイメージをビルド
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/hamephone', '.']
+  
+  # イメージをContainer Registryにプッシュ
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/hamephone']
+  
+  # Cloud Runにデプロイ
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'hamephone'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/hamephone'
+      - '--region'
+      - 'asia-northeast1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '3000'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--max-instances'
+      - '10'
+      - '--min-instances'
+      - '0'
+      - '--set-env-vars'
+      - 'PORT=3000'
+
+images:
+  - 'gcr.io/$PROJECT_ID/hamephone' 

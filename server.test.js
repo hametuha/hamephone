@@ -17,7 +17,7 @@ describe('IVR Routing', () => {
     expect(res.status).toBe(200);
     expect(res.type).toBe('text/xml');
     expect(res.text).toContain('<Gather');
-    expect(res.text).toContain('営業の方は1を、返品依頼の方は2を、注文やサービスについての方は3を押してください。');
+    expect(res.text).toContain('破滅派です');
   });
 
   test('POST /handle-gather with 1 (sales) shows form guidance', async () => {
@@ -38,7 +38,7 @@ describe('IVR Routing', () => {
       .send({ Digits: '2' });
     expect(res.status).toBe(200);
     expect(res.type).toBe('text/xml');
-    expect(res.text).toContain('返品についての詳細はメッセージでご案内いたします');
+    expect(res.text).toContain('返品条件付き注文品は返品了解者');
     expect(res.text).toContain('action="/confirm-return"');
   });
 
@@ -101,7 +101,7 @@ describe('IVR Routing', () => {
       .send({ Digits: '2' });
     expect(res.status).toBe(200);
     expect(res.type).toBe('text/xml');
-    expect(res.text).toContain('返品についてメッセージでご案内いたします');
+    expect(res.text).toContain('返品についてメッセージでご案内いたしました');
     expect(res.text).toContain('<Hangup');
   });
 
