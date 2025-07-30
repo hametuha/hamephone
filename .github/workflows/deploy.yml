@@ -95,6 +95,7 @@ jobs:
     
     - name: Deploy to Cloud Run
       run: |
+        echo "🚀 Cloud Runにデプロイ中..."
         gcloud run deploy ${{ env.SERVICE_NAME }} \
           --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }} \
           --region ${{ env.REGION }} \
@@ -105,17 +106,31 @@ jobs:
           --cpu 1 \
           --max-instances 10 \
           --min-instances 0 \
-          --set-env-vars PORT=3000 \
           --set-secrets TWILIO_ACCOUNT_SID=twilio-account-sid:latest \
           --set-secrets TWILIO_AUTH_TOKEN=twilio-auth-token:latest \
           --set-secrets TWILIO_PHONE_NUMBER=twilio-phone-number:latest \
           --set-secrets TWILIO_SMS_NUMBER=twilio-sms-number:latest \
           --set-secrets FORWARD_TO=forward-to:latest \
           --set-secrets AWS_ACCESS_KEY_ID=aws-access-key-id:latest \
-          --set-secrets AWS_SECRET_ACCESS_KEY=aws-secret-access-key:latest
+          --set-secrets AWS_SECRET_ACCESS_KEY=aws-secret-access-key:latest \
+          --timeout=600
     
     - name: Show service URL
       run: |
         echo "✅ デプロイが完了しました！"
         echo "🌐 サービスURL:"
-        gcloud run services describe ${{ env.SERVICE_NAME }} --region ${{ env.REGION }} --format="value(status.url)" 
+        SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} --region ${{ env.REGION }} --format="value(status.url)")
+        echo "$SERVICE_URL"
+        
+        echo ""
+        echo "📋 デプロイ情報:"
+        echo "- サービス名: ${{ env.SERVICE_NAME }}"
+        echo "- リージョン: ${{ env.REGION }}"
+        echo "- プロジェクト: ${{ secrets.GCP_PROJECT_ID }}"
+        echo "- サービスURL: $SERVICE_URL"
+        
+        echo ""
+        echo "🔧 次のステップ:"
+        echo "1. TwilioコンソールでWebhook URLを更新: $SERVICE_URL/ivr"
+        echo "2. 実際の通話テストを実行"
+        echo "3. Secret Managerで実際の値を設定" 
