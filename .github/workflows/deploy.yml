@@ -42,6 +42,7 @@ jobs:
         gcloud services enable run.googleapis.com
         gcloud services enable secretmanager.googleapis.com
         gcloud services enable storage.googleapis.com
+        gcloud services enable cloudresourcemanager.googleapis.com
     
     - name: Configure Docker
       run: gcloud auth configure-docker
@@ -49,20 +50,48 @@ jobs:
     - name: Check Cloud Build permissions
       run: |
         echo "🔍 Cloud Build権限を確認中..."
-        gcloud projects get-iam-policy ${{ secrets.GCP_PROJECT_ID }} --flatten="bindings[].members" --filter="bindings.members:github-actions@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com" --format="table(bindings.role)"
+        gcloud projects get-iam-policy ${{ secrets.GCP_PROJECT_ID }} --flatten="bindings[].members" --filter="bindings.members:github-actions@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com" --format="table(bindings.role)" || echo "権限確認でエラーが発生しましたが、続行します"
         
         echo "🔍 Cloud Buildサービスアカウント権限を確認中..."
-        gcloud projects get-iam-policy ${{ secrets.GCP_PROJECT_ID }} --flatten="bindings[].members" --filter="bindings.members:749371950666@cloudbuild.gserviceaccount.com" --format="table(bindings.role)"
+        gcloud projects get-iam-policy ${{ secrets.GCP_PROJECT_ID }} --flatten="bindings[].members" --filter="bindings.members:749371950666@cloudbuild.gserviceaccount.com" --format="table(bindings.role)" || echo "権限確認でエラーが発生しましたが、続行します"
     
     - name: Build and push Docker image
       run: |
         echo "🔧 Cloud BuildでDockerイメージをビルド中..."
-        gcloud builds submit \
+        BUILD_ID=$(gcloud builds submit \
           --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }} \
           --project ${{ secrets.GCP_PROJECT_ID }} \
           --verbosity=debug \
           --timeout=1800 \
-          --machine-type=E2_HIGHCPU_8
+          --machine-type=E2_HIGHCPU_8 \
+          --format="value(id)" \
+          --async)
+        
+        echo "📋 ビルドID: $BUILD_ID"
+        echo "⏳ ビルドの完了を待機中..."
+        
+        # ビルドの完了を待機（最大30分）
+        for i in {1..180}; do
+          BUILD_STATUS=$(gcloud builds describe $BUILD_ID --project ${{ secrets.GCP_PROJECT_ID }} --format="value(status)" 2>/dev/null || echo "UNKNOWN")
+          echo "📊 ビルド状態 ($i/180): $BUILD_STATUS"
+          
+          if [ "$BUILD_STATUS" = "SUCCESS" ]; then
+            echo "✅ ビルドが成功しました"
+            break
+          elif [ "$BUILD_STATUS" = "FAILURE" ] || [ "$BUILD_STATUS" = "TIMEOUT" ] || [ "$BUILD_STATUS" = "CANCELLED" ]; then
+            echo "❌ ビルドが失敗しました: $BUILD_STATUS"
+            exit 1
+          fi
+          
+          sleep 10
+        done
+        
+        # 最終確認
+        FINAL_STATUS=$(gcloud builds describe $BUILD_ID --project ${{ secrets.GCP_PROJECT_ID }} --format="value(status)" 2>/dev/null || echo "UNKNOWN")
+        if [ "$FINAL_STATUS" != "SUCCESS" ]; then
+          echo "❌ ビルドがタイムアウトまたは失敗しました: $FINAL_STATUS"
+          exit 1
+        fi
     
     - name: Deploy to Cloud Run
       run: |
