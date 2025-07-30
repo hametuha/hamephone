@@ -18,7 +18,13 @@ hamephone/
 │   ├── restart.sh         # ローカルサーバー再起動
 │   ├── deploy.sh          # Cloud Runデプロイ
 │   ├── setup-secrets.sh   # Secret Manager設定（対話式）
-│   └── auto-setup-secrets.sh # Secret Manager自動設定
+│   ├── auto-setup-secrets.sh # Secret Manager自動設定
+│   └── setup-github-actions.sh # GitHub Actionsセットアップ
+├── .github/workflows/     # GitHub Actions設定
+│   ├── test.yml          # プルリクエスト時のテスト
+│   └── deploy.yml        # mainブランチへのデプロイ
+├── docs/                  # ドキュメント
+│   └── github-actions-setup.md # GitHub Actions設定ガイド
 ├── server.js              # メインアプリケーション
 ├── server.test.js         # テストファイル
 ├── Dockerfile             # Docker設定
@@ -56,7 +62,7 @@ npm test
 - Google Cloud SDK インストール済み
 - `hametuha-cloud` プロジェクトアクセス権限
 
-### デプロイ
+### 手動デプロイ
 ```bash
 # Secret Manager設定（推奨）
 npm run secrets:auto      # .envファイルから自動設定
@@ -68,6 +74,19 @@ npm run deploy
 # 個別デプロイ
 npm run deploy:build  # イメージビルド
 npm run deploy:run    # Cloud Runデプロイ
+```
+
+### GitHub Actions CI/CD（推奨）
+```bash
+# GitHub Actionsセットアップ
+npm run github:setup
+
+# 開発フロー
+git checkout -b feature/new-feature
+# 開発・テスト
+git push origin feature/new-feature
+# プルリクエスト作成 → テスト自動実行
+# マージ → 自動デプロイ
 ```
 
 ### 環境変数設定
@@ -112,3 +131,4 @@ npm run deploy:run    # Cloud Runデプロイ
 | `bin/deploy.sh` | Cloud Runデプロイ | `npm run deploy` |
 | `bin/setup-secrets.sh` | Secret Manager設定（対話式） | `npm run secrets:setup` |
 | `bin/auto-setup-secrets.sh` | Secret Manager自動設定 | `npm run secrets:auto` |
+| `bin/setup-github-actions.sh` | GitHub Actionsセットアップ | `npm run github:setup` |
