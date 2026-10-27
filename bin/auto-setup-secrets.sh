@@ -1,4 +1,5 @@
 #!/bin/bash
+set -eo pipefail
 
 # Secret Manager自動設定スクリプト
 ENV_FILE=".env"
@@ -7,7 +8,8 @@ echo "🔐 Secret Manager自動設定"
 echo "================================"
 
 # プロジェクトIDの取得
-PROJECT_ID=${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}
+# gcloudのアクティブ設定に関わらず、デプロイ先を固定する
+PROJECT_ID=${PROJECT_ID:-hametuha-cloud}
 if [ -z "$PROJECT_ID" ]; then
     echo "❌ プロジェクトIDが設定されていません"
     echo "📝 以下のいずれかの方法で設定してください:"
@@ -19,8 +21,8 @@ fi
 
 echo "📋 プロジェクトID: $PROJECT_ID"
 
-# プロジェクト設定
-gcloud config set project $PROJECT_ID
+# プロジェクト設定（gcloudのグローバル設定は変更しない）
+export CLOUDSDK_CORE_PROJECT=$PROJECT_ID
 
 # .envファイルの存在確認
 if [ ! -f "$ENV_FILE" ]; then
@@ -58,17 +60,17 @@ auto_set_secret() {
     if [ ! -z "$env_key" ]; then
         env_value=$(get_env_value "$env_key")
         if [ ! -z "$env_value" ]; then
-            echo "📄 .envファイルから値を取得: ${env_value:0:10}..."
+            echo "📄 .envファイルから値を取得: ${env_value:0:4}****"
             
             # 自動でSecret Managerに設定
-            echo "$env_value" | gcloud secrets versions add "$secret_name" --data-file=-
+            printf "%s" "$env_value" | gcloud secrets versions add "$secret_name" --data-file=-
             echo "✅ $secret_name を自動設定しました"
         else
             echo "⚠️  .envファイルに $env_key が見つかりません"
             echo "   手動で値を入力してください:"
             read -p "値を入力: " manual_value
             if [ ! -z "$manual_value" ]; then
-                echo "$manual_value" | gcloud secrets versions add "$secret_name" --data-file=-
+                printf "%s" "$manual_value" | gcloud secrets versions add "$secret_name" --data-file=-
                 echo "✅ $secret_name を手動設定しました"
             else
                 echo "❌ $secret_name の設定をスキップしました"
@@ -78,7 +80,7 @@ auto_set_secret() {
         echo "⚠️  環境変数キーが指定されていません"
         read -p "値を入力: " manual_value
         if [ ! -z "$manual_value" ]; then
-            echo "$manual_value" | gcloud secrets versions add "$secret_name" --data-file=-
+            printf "%s" "$manual_value" | gcloud secrets versions add "$secret_name" --data-file=-
             echo "✅ $secret_name を手動設定しました"
         else
             echo "❌ $secret_name の設定をスキップしました"
@@ -97,6 +99,7 @@ auto_set_secret "twilio-sms-number" "Twilio SMS Number (カナダ番号)" "TWILI
 auto_set_secret "forward-to" "転送先電話番号" "FORWARD_TO"
 auto_set_secret "aws-access-key-id" "AWS Access Key ID" "AWS_ACCESS_KEY_ID"
 auto_set_secret "aws-secret-access-key" "AWS Secret Access Key" "AWS_SECRET_ACCESS_KEY"
+auto_set_secret "recording-link-secret" "録音リンク署名用シークレット" "LINK_SECRET"
 
 echo ""
 echo "✅ Secret Manager自動設定完了！"

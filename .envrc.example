@@ -1,0 +1,7 @@
+# direnv用設定。cp .envrc.example .envrc && direnv allow
+# AWS: 録音保存先S3の確認用（defaultが破滅派アカウント）
+export AWS_PROFILE=default
+export AWS_REGION=ap-northeast-1
+# gcloud: Cloud Run / Secret Manager
+export CLOUDSDK_ACTIVE_CONFIG_NAME=hametuha
+export CLOUDSDK_CORE_PROJECT=hametuha-cloud

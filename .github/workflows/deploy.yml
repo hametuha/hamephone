@@ -113,6 +113,7 @@ jobs:
           --set-secrets FORWARD_TO=forward-to:latest \
           --set-secrets AWS_ACCESS_KEY_ID=aws-access-key-id:latest \
           --set-secrets AWS_SECRET_ACCESS_KEY=aws-secret-access-key:latest \
+          --set-secrets LINK_SECRET=recording-link-secret:latest \
           --timeout=600
     
     - name: Show service URL

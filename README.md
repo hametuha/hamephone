@@ -6,9 +6,20 @@
 
 - **IVRメニュー**: 営業・返品・注文の振り分け
 - **通話転送**: 2段階転送と直接転送
-- **録音機能**: S3外部ストレージ対応
+- **録音機能**: S3外部ストレージ対応（SMSのリンクから署名付きURLで再生）
 - **SMS通知**: 詳細な通話情報通知
 - **Cloud Run対応**: 本番環境デプロイ
+
+```mermaid
+flowchart TD
+    A[📞 着信: Twilio番号] --> B{🎛 プッシュ操作を要求}
+    B -->|1: 営業| C[📢 営業お断りメッセージ]
+    B -->|2: 顧客| D[📞 あなたのスマホへ転送]
+    B -->|無操作| E[⏱ タイムアウト → 通話終了]
+    C --> F[🔚 通話終了]
+    D --> G[🔚 通話終了（通話完了後）]
+    E --> H[🔚 通話終了]
+```
 
 ## 📁 プロジェクト構造
 
@@ -99,6 +110,7 @@ git push origin feature/new-feature
    FORWARD_TO=your_forward_number
    AWS_ACCESS_KEY_ID=your_aws_key
    AWS_SECRET_ACCESS_KEY=your_aws_secret
+   LINK_SECRET=random_string  # 録音リンクの署名用
    ```
 
 2. **自動設定実行**:
@@ -121,7 +133,9 @@ git push origin feature/new-feature
 1. **着信** → IVRメニュー再生
 2. **選択** → 営業/返品/注文振り分け
 3. **転送** → 録音開始
-4. **完了** → SMS通知 + S3保存
+4. **完了** → S3保存 + SMS通知（`/r/:sid` の署名付きリンク。90日有効、開くとS3の5分間有効なURLへリダイレクト）
+
+AWS側の権限は `docs/iam/hamephone-twilio-policy.json` を参照。IAMユーザー `hamephone-twilio` に付与している。
 
 ## 🔧 スクリプト一覧
 

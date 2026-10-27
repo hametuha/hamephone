@@ -1,4 +1,5 @@
 #!/bin/bash
+set -eo pipefail
 
 # Secret Manager設定ヘルパースクリプト
 ENV_FILE=".env"
@@ -7,7 +8,8 @@ echo "🔐 Secret Manager設定ヘルパー"
 echo "================================"
 
 # プロジェクトIDの取得
-PROJECT_ID=${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}
+# gcloudのアクティブ設定に関わらず、デプロイ先を固定する
+PROJECT_ID=${PROJECT_ID:-hametuha-cloud}
 if [ -z "$PROJECT_ID" ]; then
     echo "❌ プロジェクトIDが設定されていません"
     echo "📝 以下のいずれかの方法で設定してください:"
@@ -19,8 +21,8 @@ fi
 
 echo "📋 プロジェクトID: $PROJECT_ID"
 
-# プロジェクト設定
-gcloud config set project $PROJECT_ID
+# プロジェクト設定（gcloudのグローバル設定は変更しない）
+export CLOUDSDK_CORE_PROJECT=$PROJECT_ID
 
 # .envファイルの存在確認
 if [ ! -f "$ENV_FILE" ]; then
@@ -52,7 +54,7 @@ set_secret() {
     if [ ! -z "$env_key" ]; then
         env_value=$(get_env_value "$env_key")
         if [ ! -z "$env_value" ]; then
-            echo "📄 .envファイルから値を取得: ${env_value:0:10}..."
+            echo "📄 .envファイルから値を取得: ${env_value:0:4}****"
         fi
     fi
     
@@ -60,7 +62,7 @@ set_secret() {
     if gcloud secrets describe "$secret_name" >/dev/null 2>&1; then
         current_value=$(gcloud secrets versions access latest --secret="$secret_name" 2>/dev/null || echo "")
         if [ ! -z "$current_value" ]; then
-            echo "現在の値: ${current_value:0:10}..."
+            echo "現在の値: ${current_value:0:4}****"
         fi
     fi
     
@@ -78,7 +80,7 @@ set_secret() {
     fi
     
     if [ ! -z "$new_value" ]; then
-        echo "$new_value" | gcloud secrets versions add "$secret_name" --data-file=-
+        printf "%s" "$new_value" | gcloud secrets versions add "$secret_name" --data-file=-
         echo "✅ $secret_name を更新しました"
     else
         echo "⚠️  値が空のため、更新をスキップしました"
@@ -96,6 +98,7 @@ set_secret "twilio-sms-number" "Twilio SMS Number (カナダ番号)" "TWILIO_SMS
 set_secret "forward-to" "転送先電話番号" "FORWARD_TO"
 set_secret "aws-access-key-id" "AWS Access Key ID" "AWS_ACCESS_KEY_ID"
 set_secret "aws-secret-access-key" "AWS Secret Access Key" "AWS_SECRET_ACCESS_KEY"
+set_secret "recording-link-secret" "録音リンク署名用シークレット" "LINK_SECRET"
 
 echo ""
 echo "✅ Secret Manager設定完了！"
