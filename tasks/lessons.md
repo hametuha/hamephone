@@ -1,0 +1,21 @@
+# Lessons
+
+## IAMキーは「どのユーザーのキーか」を必ず確認する（2026-10-27）
+
+- 2025-07-30、`hamephone-twilio` を作った3分後に、誤って `s3uploader`（AmazonS3FullAccess・他システムと共用）にキーを発行し、それを Twilio と `.env` に設定していた。人間の記憶（「hamephone-twilioのはず」）は外れていた。
+- ルール: キーの持ち主は `aws iam get-access-key-last-used --access-key-id <ID> --query UserName` で確認する。権限を絞る前に、そのユーザーの他のキーが別用途で使われていないか（最終使用日）を見る。
+- 共用ユーザーの権限を絞るのではなく、専用ユーザーに付け替えてから旧キーを無効化 → 削除する。
+
+## シークレットを `echo` で渡さない（2026-10-27）
+
+- `echo "$v" | gcloud secrets versions add` で全シークレットに末尾改行が入っていた。Twilio はたまたま動いていたが、AWSキーはSigV4署名が壊れる。
+- ルール: `printf '%s' "$v"` を使う。登録後は `gcloud secrets versions access latest ... | cmp - <(printf '%s' "$v")` でバイト一致を確認する（値は表示しない）。
+
+## スクリプトのプロジェクトはgcloudのアクティブ設定に頼らない（2026-10-27）
+
+- `!` 実行のシェルではdirenvが効かず、アクティブ設定の `hamepub` に書き込もうとした。しかも失敗しても ✅ を表示していた。
+- ルール: 書き込み系スクリプトはプロジェクトを既定値で固定し、`gcloud config set project`（グローバル設定の変更）ではなく `CLOUDSDK_CORE_PROJECT` を使う。`set -eo pipefail` で失敗時に止める。
+
+## IAMの「最終使用」は即時反映されない（2026-10-27）
+
+- `get-access-key-last-used` は数時間遅れることがある。キーの切り替え確認に使うなら、自分のテスト操作と時刻が重ならないようにする。確実に確かめたいなら、旧キーを「無効化」して動作確認する（削除はその後）。
