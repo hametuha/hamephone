@@ -2,6 +2,7 @@ const express = require('express');
 const { twiml } = require('twilio');
 const dotenv = require('dotenv');
 dotenv.config();
+const { createLink, verifyLink, presignRecording } = require('./lib/recording-link');
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 
@@ -180,8 +181,15 @@ app.post('/recording-status', async (req, res) => {
     // SMS用番号がある場合はSMS送信
     const smsNumber = process.env.TWILIO_SMS_NUMBER;
     if (smsNumber) {
+      const baseUrl = process.env.PUBLIC_URL || `https://${req.get('host')}`;
+      let listenUrl = mediaUrl;
+      try {
+        listenUrl = createLink(baseUrl, recordingSid);
+      } catch (err) {
+        console.error('再生用URLの生成に失敗:', err.message);
+      }
       await client.messages.create({
-        body: `[📞 タイトル]\n⏰ ${callTime}\n📱 ${from}\n🎙️ 録音完了\n🔗 ${mediaUrl}\n⏰ S3に保存済み`,
+        body: `[📞 タイトル]\n⏰ ${callTime}\n📱 ${from}\n🎙️ 録音完了\n🔗 ${listenUrl}`,
         from: smsNumber,
         to: process.env.FORWARD_TO
       });
@@ -194,6 +202,27 @@ app.post('/recording-status', async (req, res) => {
   }
 
   res.sendStatus(200);
+});
+
+/**
+ * SMSのリンクから録音を再生する
+ * @route GET /r/:sid
+ * @param {string} req.query.e - 有効期限（UNIX秒）
+ * @param {string} req.query.t - HMAC署名
+ * @description 署名を検証し、S3の署名付きURLへリダイレクト
+ */
+app.get('/r/:sid', async (req, res) => {
+  const { sid } = req.params;
+  if (!verifyLink(sid, req.query.e, req.query.t)) {
+    res.status(403).type('text/plain').send('リンクが無効か、有効期限が切れています。');
+    return;
+  }
+  try {
+    res.redirect(302, await presignRecording(sid));
+  } catch (error) {
+    console.error('署名付きURLの生成に失敗:', error);
+    res.status(500).type('text/plain').send('録音を取得できませんでした。');
+  }
 });
 
 if (require.main === module) {

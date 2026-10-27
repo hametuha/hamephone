@@ -40,6 +40,7 @@ SECRETS=(
     "forward-to"
     "aws-access-key-id"
     "aws-secret-access-key"
+    "recording-link-secret"
 )
 
 # 各シークレットを作成（存在しない場合のみ）
@@ -98,7 +99,8 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
       --set-secrets TWILIO_SMS_NUMBER=twilio-sms-number:latest \
       --set-secrets FORWARD_TO=forward-to:latest \
       --set-secrets AWS_ACCESS_KEY_ID=aws-access-key-id:latest \
-      --set-secrets AWS_SECRET_ACCESS_KEY=aws-secret-access-key:latest
+      --set-secrets AWS_SECRET_ACCESS_KEY=aws-secret-access-key:latest \
+      --set-secrets LINK_SECRET=recording-link-secret:latest
 
     # デプロイ完了
     echo "✅ デプロイ完了！"

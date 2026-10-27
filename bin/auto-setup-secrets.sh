@@ -97,6 +97,7 @@ auto_set_secret "twilio-sms-number" "Twilio SMS Number (カナダ番号)" "TWILI
 auto_set_secret "forward-to" "転送先電話番号" "FORWARD_TO"
 auto_set_secret "aws-access-key-id" "AWS Access Key ID" "AWS_ACCESS_KEY_ID"
 auto_set_secret "aws-secret-access-key" "AWS Secret Access Key" "AWS_SECRET_ACCESS_KEY"
+auto_set_secret "recording-link-secret" "録音リンク署名用シークレット" "LINK_SECRET"
 
 echo ""
 echo "✅ Secret Manager自動設定完了！"

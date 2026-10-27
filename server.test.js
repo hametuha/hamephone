@@ -128,4 +128,30 @@ describe('Recording Status', () => {
       });
     expect(res.status).toBe(200);
   });
-}); 
+});
+
+describe('Recording Link', () => {
+  const { createLink } = require('./lib/recording-link');
+  const SID = 'REa4fa8882c31dc00f6defa77522bce790';
+
+  beforeEach(() => {
+    process.env.LINK_SECRET = 'test-secret';
+    process.env.AWS_ACCESS_KEY_ID = 'AKIATEST';
+    process.env.AWS_SECRET_ACCESS_KEY = 'secret';
+    delete process.env.AWS_PROFILE;
+  });
+
+  test('GET /r/:sid with a valid link redirects to S3', async () => {
+    const link = new URL(createLink('https://example.com', SID));
+    const res = await request(app).get(link.pathname + link.search);
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain(`hamephone-recordings.s3.ap-northeast-1.amazonaws.com/`);
+    expect(res.headers.location).toContain(SID);
+    expect(res.headers.location).toContain('X-Amz-Signature=');
+  });
+
+  test('GET /r/:sid with a bad token is forbidden', async () => {
+    const res = await request(app).get(`/r/${SID}?e=9999999999&t=invalid`);
+    expect(res.status).toBe(403);
+  });
+});
