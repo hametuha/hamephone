@@ -127,7 +127,7 @@ describe('IVR Routing', () => {
 });
 
 describe('Recording Status', () => {
-  const SID = 'REa4fa8882c31dc00f6defa77522bce790';
+  const SID = 'RE0123456789abcdef0123456789abcdef';
   const env = { ...process.env };
 
   beforeEach(() => {
@@ -178,7 +178,7 @@ describe('Recording Status', () => {
 
 describe('Recording Link', () => {
   const { createLink } = require('./lib/recording-link');
-  const SID = 'REa4fa8882c31dc00f6defa77522bce790';
+  const SID = 'RE0123456789abcdef0123456789abcdef';
 
   beforeEach(() => {
     process.env.LINK_SECRET = 'test-secret';
