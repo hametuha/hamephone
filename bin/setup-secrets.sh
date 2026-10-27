@@ -78,7 +78,7 @@ set_secret() {
     fi
     
     if [ ! -z "$new_value" ]; then
-        echo "$new_value" | gcloud secrets versions add "$secret_name" --data-file=-
+        printf "%s" "$new_value" | gcloud secrets versions add "$secret_name" --data-file=-
         echo "✅ $secret_name を更新しました"
     else
         echo "⚠️  値が空のため、更新をスキップしました"

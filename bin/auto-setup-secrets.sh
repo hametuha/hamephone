@@ -61,14 +61,14 @@ auto_set_secret() {
             echo "📄 .envファイルから値を取得: ${env_value:0:10}..."
             
             # 自動でSecret Managerに設定
-            echo "$env_value" | gcloud secrets versions add "$secret_name" --data-file=-
+            printf "%s" "$env_value" | gcloud secrets versions add "$secret_name" --data-file=-
             echo "✅ $secret_name を自動設定しました"
         else
             echo "⚠️  .envファイルに $env_key が見つかりません"
             echo "   手動で値を入力してください:"
             read -p "値を入力: " manual_value
             if [ ! -z "$manual_value" ]; then
-                echo "$manual_value" | gcloud secrets versions add "$secret_name" --data-file=-
+                printf "%s" "$manual_value" | gcloud secrets versions add "$secret_name" --data-file=-
                 echo "✅ $secret_name を手動設定しました"
             else
                 echo "❌ $secret_name の設定をスキップしました"
@@ -78,7 +78,7 @@ auto_set_secret() {
         echo "⚠️  環境変数キーが指定されていません"
         read -p "値を入力: " manual_value
         if [ ! -z "$manual_value" ]; then
-            echo "$manual_value" | gcloud secrets versions add "$secret_name" --data-file=-
+            printf "%s" "$manual_value" | gcloud secrets versions add "$secret_name" --data-file=-
             echo "✅ $secret_name を手動設定しました"
         else
             echo "❌ $secret_name の設定をスキップしました"
