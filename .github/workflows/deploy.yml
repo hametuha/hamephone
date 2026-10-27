@@ -3,6 +3,19 @@ name: 🚀 Deploy to Cloud Run
 on:
   push:
     branches: [ main, master ]
+    # 本番イメージに影響するファイルが変わったときだけデプロイする
+    # 実行時に読むファイル・ディレクトリを追加したら、ここにも追加すること
+    paths:
+      - 'server.js'
+      - 'lib/**'
+      - '!**/*.test.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - '.github/workflows/deploy.yml'
+  # 手動デプロイ（Actionsタブの「Run workflow」）
+  workflow_dispatch:
 
 env:
   REGION: asia-northeast1
