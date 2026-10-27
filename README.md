@@ -71,7 +71,7 @@ npm test
 
 ### 前提条件
 - Google Cloud SDK インストール済み
-- `hametuha-cloud` プロジェクトアクセス権限
+- デプロイ先GCPプロジェクトへのアクセス権限
 
 ### 手動デプロイ
 ```bash
@@ -106,7 +106,7 @@ git push origin feature/new-feature
    TWILIO_ACCOUNT_SID=your_account_sid
    TWILIO_AUTH_TOKEN=your_auth_token
    TWILIO_PHONE_NUMBER=your_phone_number
-   TWILIO_SMS_NUMBER=+17822088328
+   TWILIO_SMS_NUMBER=your_sms_number
    FORWARD_TO=your_forward_number
    AWS_ACCESS_KEY_ID=your_aws_key
    AWS_SECRET_ACCESS_KEY=your_aws_secret

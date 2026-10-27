@@ -1,6 +1,15 @@
 const request = require('supertest');
-const express = require('express');
-const { twiml } = require('twilio');
+
+// 実際のTwilio APIを叩かないよう、REST クライアントだけをモックする（twimlは本物を使う）
+const mockClient = {
+  calls: jest.fn(() => ({ fetch: jest.fn().mockResolvedValue({ from: '+819011112222' }) })),
+  recordings: jest.fn(() => ({ fetch: jest.fn().mockResolvedValue({ mediaUrl: 'https://example.com/media', duration: '12' }) })),
+  messages: { create: jest.fn().mockResolvedValue({ sid: 'SM123' }) },
+};
+jest.mock('twilio', () => {
+  const actual = jest.requireActual('twilio');
+  return Object.assign(jest.fn(() => mockClient), actual);
+});
 
 let app;
 
@@ -118,21 +127,58 @@ describe('IVR Routing', () => {
 });
 
 describe('Recording Status', () => {
-  test('POST /recording-status returns 200', async () => {
+  const SID = 'RE0123456789abcdef0123456789abcdef';
+  const env = { ...process.env };
+
+  beforeEach(() => {
+    mockClient.messages.create.mockClear();
+    process.env.TWILIO_SMS_NUMBER = '+11234567890';
+    process.env.FORWARD_TO = '+819012345678';
+    process.env.LINK_SECRET = 'test-secret';
+    delete process.env.PUBLIC_URL;
+  });
+  afterEach(() => {
+    process.env = { ...env };
+  });
+
+  test('POST /recording-status sends SMS with a signed /r/ link', async () => {
+    const res = await request(app)
+      .post('/recording-status')
+      .set('Host', 'hamephone.example')
+      .type('form')
+      .send({ RecordingUrl: 'https://api.twilio.com/recording', RecordingSid: SID, CallSid: 'CA123' });
+    expect(res.status).toBe(200);
+    expect(mockClient.messages.create).toHaveBeenCalledTimes(1);
+    const { body, to } = mockClient.messages.create.mock.calls[0][0];
+    expect(to).toBe('+819012345678');
+    expect(body).toContain('+819011112222');
+    expect(body).toMatch(new RegExp(`https://hamephone\\.example/r/${SID}\\?e=\\d+&t=[\\w-]+`));
+  });
+
+  test('POST /recording-status falls back to media URL without LINK_SECRET', async () => {
+    delete process.env.LINK_SECRET;
     const res = await request(app)
       .post('/recording-status')
       .type('form')
-      .send({
-        RecordingUrl: 'https://api.twilio.com/2010-04-01/Accounts/AC123/Recordings/RE123',
-        RecordingSid: 'RE123'
-      });
+      .send({ RecordingUrl: 'https://api.twilio.com/recording', RecordingSid: SID, CallSid: 'CA123' });
     expect(res.status).toBe(200);
+    expect(mockClient.messages.create.mock.calls[0][0].body).toContain('https://example.com/media');
+  });
+
+  test('POST /recording-status skips SMS without TWILIO_SMS_NUMBER', async () => {
+    delete process.env.TWILIO_SMS_NUMBER;
+    const res = await request(app)
+      .post('/recording-status')
+      .type('form')
+      .send({ RecordingUrl: 'https://api.twilio.com/recording', RecordingSid: SID, CallSid: 'CA123' });
+    expect(res.status).toBe(200);
+    expect(mockClient.messages.create).not.toHaveBeenCalled();
   });
 });
 
 describe('Recording Link', () => {
   const { createLink } = require('./lib/recording-link');
-  const SID = 'REa4fa8882c31dc00f6defa77522bce790';
+  const SID = 'RE0123456789abcdef0123456789abcdef';
 
   beforeEach(() => {
     process.env.LINK_SECRET = 'test-secret';

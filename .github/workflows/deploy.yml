@@ -3,6 +3,19 @@ name: 🚀 Deploy to Cloud Run
 on:
   push:
     branches: [ main, master ]
+    # 本番イメージに影響するファイルが変わったときだけデプロイする
+    # 実行時に読むファイル・ディレクトリを追加したら、ここにも追加すること
+    paths:
+      - 'server.js'
+      - 'lib/**'
+      - '!**/*.test.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - '.github/workflows/deploy.yml'
+  # 手動デプロイ（Actionsタブの「Run workflow」）
+  workflow_dispatch:
 
 env:
   REGION: asia-northeast1
@@ -46,14 +59,6 @@ jobs:
     
     - name: Configure Docker
       run: gcloud auth configure-docker
-    
-    - name: Check Cloud Build permissions
-      run: |
-        echo "🔍 Cloud Build権限を確認中..."
-        gcloud projects get-iam-policy ${{ secrets.GCP_PROJECT_ID }} --flatten="bindings[].members" --filter="bindings.members:github-actions@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com" --format="table(bindings.role)" || echo "権限確認でエラーが発生しましたが、続行します"
-        
-        echo "🔍 Cloud Buildサービスアカウント権限を確認中..."
-        gcloud projects get-iam-policy ${{ secrets.GCP_PROJECT_ID }} --flatten="bindings[].members" --filter="bindings.members:749371950666@cloudbuild.gserviceaccount.com" --format="table(bindings.role)" || echo "権限確認でエラーが発生しましたが、続行します"
     
     - name: Build and push Docker image
       run: |
