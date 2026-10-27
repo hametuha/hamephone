@@ -1,4 +1,5 @@
 #!/bin/bash
+set -eo pipefail
 
 # Hamephone Cloud Run デプロイスクリプト
 REGION="asia-northeast1"
@@ -7,7 +8,8 @@ SERVICE_NAME="hamephone"
 echo "🚀 Hamephone Cloud Run デプロイを開始します..."
 
 # プロジェクトIDの取得
-PROJECT_ID=${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}
+# gcloudのアクティブ設定に関わらず、デプロイ先を固定する
+PROJECT_ID=${PROJECT_ID:-hametuha-cloud}
 if [ -z "$PROJECT_ID" ]; then
     echo "❌ プロジェクトIDが設定されていません"
     echo "📝 以下のいずれかの方法で設定してください:"
@@ -19,8 +21,8 @@ fi
 
 echo "📋 プロジェクトID: $PROJECT_ID"
 
-# プロジェクト設定
-gcloud config set project $PROJECT_ID
+# プロジェクト設定（gcloudのグローバル設定は変更しない）
+export CLOUDSDK_CORE_PROJECT=$PROJECT_ID
 
 # 必要なAPIを有効化
 echo "🔧 必要なAPIを有効化中..."

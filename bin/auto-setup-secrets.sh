@@ -1,4 +1,5 @@
 #!/bin/bash
+set -eo pipefail
 
 # Secret Manager自動設定スクリプト
 ENV_FILE=".env"
@@ -7,7 +8,8 @@ echo "🔐 Secret Manager自動設定"
 echo "================================"
 
 # プロジェクトIDの取得
-PROJECT_ID=${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}
+# gcloudのアクティブ設定に関わらず、デプロイ先を固定する
+PROJECT_ID=${PROJECT_ID:-hametuha-cloud}
 if [ -z "$PROJECT_ID" ]; then
     echo "❌ プロジェクトIDが設定されていません"
     echo "📝 以下のいずれかの方法で設定してください:"
@@ -19,8 +21,8 @@ fi
 
 echo "📋 プロジェクトID: $PROJECT_ID"
 
-# プロジェクト設定
-gcloud config set project $PROJECT_ID
+# プロジェクト設定（gcloudのグローバル設定は変更しない）
+export CLOUDSDK_CORE_PROJECT=$PROJECT_ID
 
 # .envファイルの存在確認
 if [ ! -f "$ENV_FILE" ]; then
@@ -58,7 +60,7 @@ auto_set_secret() {
     if [ ! -z "$env_key" ]; then
         env_value=$(get_env_value "$env_key")
         if [ ! -z "$env_value" ]; then
-            echo "📄 .envファイルから値を取得: ${env_value:0:10}..."
+            echo "📄 .envファイルから値を取得: ${env_value:0:4}****"
             
             # 自動でSecret Managerに設定
             printf "%s" "$env_value" | gcloud secrets versions add "$secret_name" --data-file=-
