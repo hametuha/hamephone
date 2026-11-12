@@ -16,6 +16,11 @@ on:
       - '.github/workflows/deploy.yml'
   # 手動デプロイ（Actionsタブの「Run workflow」）
   workflow_dispatch:
+  # 週1回の再ビルド。Dockerfile は node:24-slim（版を固定しない）なので、
+  # Node のセキュリティリリースやベースイメージの更新がこれで本番に入る。
+  # 注意: 公開リポジトリでは60日間コミットがないと schedule が自動で無効化される。
+  schedule:
+    - cron: '0 18 * * 0' # 毎週月曜 03:00 JST
 
 env:
   REGION: asia-northeast1

@@ -1,5 +1,7 @@
-# Node.js 24.22.1: patched for the 2026-10-21 security release (Node 20 is EOL and unpatched).
-FROM node:24.22.1-slim
+# Node 24 系の最新パッチを使う（版は固定しない）。
+# Cloud Build は毎回ベースイメージを取得し直すので、deploy.yml の定期デプロイで
+# セキュリティリリースが自動的に本番へ入る。
+FROM node:24-slim
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
